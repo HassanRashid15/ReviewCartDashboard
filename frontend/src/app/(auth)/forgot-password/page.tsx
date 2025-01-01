@@ -2,12 +2,26 @@
 
 import React, { useState } from "react";
 import { Mail, Info, Clock, HelpCircle } from "lucide-react";
+import { ToastContainer, toast } from "react-toastify"; // Import Toastify
+import "react-toastify/dist/ReactToastify.css"; // Import Toastify CSS
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
 
   const handleChange = (event) => {
     setEmail(event.target.value);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    // Show Toastify success message
+    toast.success("Reset link sent to your email!");
+
+    // Log the email to the console (for debugging purposes)
+    console.log("Email entered:", email);
+
+    // Here you can also add the API call to send the reset link.
   };
 
   return (
@@ -25,7 +39,7 @@ const ForgotPassword = () => {
             </p>
           </div>
 
-          <form className="mt-5 space-y-6">
+          <form className="mt-5 space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm text-gray-700">
                 Email address
@@ -102,6 +116,9 @@ const ForgotPassword = () => {
           </div>
         </div>
       </div>
+
+      {/* Toastify Container */}
+      <ToastContainer />
     </div>
   );
 };

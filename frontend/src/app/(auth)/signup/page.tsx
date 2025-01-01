@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi"; // Import eye icons from react-icons
-import { toast } from "react-toastify"; // Import Toastify for notifications
+import { toast, ToastContainer } from "react-toastify"; // Import Toastify for notifications
 import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
 import { FaUser } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
@@ -30,6 +30,8 @@ function SignUpPage() {
       ...prevData,
       [name]: value,
     }));
+
+    console.log(name, value); // Log the field name and value
 
     if (name === "password") {
       checkPasswordStrength(value);
@@ -93,6 +95,8 @@ function SignUpPage() {
       // Show success notification
       toast.success("Account created successfully!", { autoClose: 3000 });
 
+      console.log("Form submitted with data:", formData); // Log form data upon submission
+
       // Clear the form data after submission (optional)
       setFormData({
         firstName: "",
@@ -107,16 +111,16 @@ function SignUpPage() {
   };
 
   // Check if the submit button should be enabled
-const isFormValid = () => {
-  return (
-    formData.firstName &&
-    formData.lastName &&
-    formData.email &&
-    formData.password &&
-    passwordStrength === "strong" && // Ensure the password strength is "strong"
-    !Object.keys(errors).length
-  );
-};
+  const isFormValid = () => {
+    return (
+      formData.firstName &&
+      formData.lastName &&
+      formData.email &&
+      formData.password &&
+      passwordStrength === "strong" && // Ensure the password strength is "strong"
+      !Object.keys(errors).length
+    );
+  };
 
   return (
     <div className="p-4 pt-20 sm:p-20" style={{ paddingBottom: "1rem" }}>
@@ -127,13 +131,13 @@ const isFormValid = () => {
         <p className="text-gray-500 text-center mt-2">
           Please fill in your information
         </p>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4 py-8" onSubmit={handleSubmit}>
           <div>
             <label className="text-sm font-medium text-gray-600">
               First Name
             </label>
             <div className="flex items-center border py-1 border-gray-300 rounded-lg overflow-hidden">
-              <FaUser className="text-gray-500 text-2xl pl-3" />
+              <FaUser className="text-gray-800 text-3xl pl-3" />
               <input
                 id="firstname"
                 type="text"
@@ -154,7 +158,7 @@ const isFormValid = () => {
               Last Name
             </label>
             <div className="flex items-center border py-1 border-gray-300 rounded-lg overflow-hidden">
-              <FaUser className="text-gray-500 text-2xl pl-3" />
+              <FaUser className="text-gray-800 text-3xl pl-3" />
               <input
                 id="lastname"
                 type="text"
@@ -173,7 +177,7 @@ const isFormValid = () => {
           <div>
             <label className="text-sm font-medium text-gray-600">Email</label>
             <div className="flex items-center border py-1 border-gray-300 rounded-lg overflow-hidden">
-              <MdEmail className="text-gray-500 text-3xl pl-3" />
+              <MdEmail className="text-gray-800 text-4xl pl-3" />
               <input
                 id="signupemail"
                 type="email"
@@ -285,7 +289,7 @@ const isFormValid = () => {
           Sign in with Google
         </button>
       </div>
-      <toast-container />
+      <ToastContainer />
     </div>
   );
 }

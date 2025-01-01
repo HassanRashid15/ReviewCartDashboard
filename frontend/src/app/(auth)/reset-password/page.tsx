@@ -1,13 +1,18 @@
-"use client";
+"use client"; // Add this directive at the top of the file
 
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify"; // Import Toastify for notifications
+import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
 
-const ResetPassword = () => {
+const ResetPassword = ({ token }) => {
+  // Pass token as prop, if required by the backend
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   // Password Validation Criteria
   const validationCriteria = [
@@ -21,8 +26,57 @@ const ResetPassword = () => {
     validationCriteria.every((criteria) => criteria.isValid) &&
     password === confirmPassword;
 
+  // Handle Form Submission
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+
+    try {
+      // Send POST request to backend API
+      const response = await fetch("/users/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token, // Include token if required for password reset
+          newPassword: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage("Password successfully reset. You can now log in.");
+        toast.success("Password successfully reset. You can now log in.");
+      } else {
+        setMessage(
+          data.message || "Failed to reset password. Please try again."
+        );
+        toast.error(data.message || "Failed to reset password.");
+      }
+    } catch (error) {
+      setMessage("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    setPassword(value);
+    console.log("Password:", value); // Log the password
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    const value = e.target.value;
+    setConfirmPassword(value);
+    console.log("Confirm Password:", value); // Log the confirm password
+  };
+
   return (
-    <div className="flex items-center justify-center  bg-gray-50 mt-20 mb-5">
+    <div className="flex items-center justify-center bg-gray-50 mt-20 mb-5">
       <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
         <h1 className="text-2xl font-semibold text-center text-gray-800">
           Reset Your Password
@@ -40,7 +94,7 @@ const ResetPassword = () => {
             <input
               type={passwordVisible ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange} // Handle password input change
               placeholder="Enter new password"
               className="w-full px-4 py-2 text-sm border rounded-md focus:ring-indigo-500 text-black focus:border-indigo-500"
             />
@@ -64,7 +118,7 @@ const ResetPassword = () => {
             <input
               type={confirmPasswordVisible ? "text" : "password"}
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={handleConfirmPasswordChange} // Handle confirm password input change
               placeholder="Confirm new password"
               className="w-full px-4 py-2 text-sm border rounded-md text-black focus:ring-indigo-500 focus:border-indigo-500"
             />
@@ -109,15 +163,29 @@ const ResetPassword = () => {
 
         {/* Reset Password Button */}
         <button
-          disabled={!isFormValid}
+          disabled={!isFormValid || loading}
+          onClick={handleSubmit}
           className={`w-full mt-6 py-2 text-sm font-medium text-white rounded-md transition ${
-            isFormValid
+            isFormValid && !loading
               ? "bg-indigo-600 hover:bg-indigo-700"
               : "bg-gray-400 cursor-not-allowed"
           }`}
         >
-          Reset Password
+          {loading ? "Resetting..." : "Reset Password"}
         </button>
+
+        {/* Message after submission */}
+        {message && (
+          <p
+            className={`mt-4 text-sm text-center ${
+              message.includes("successfully")
+                ? "text-green-600"
+                : "text-red-600"
+            }`}
+          >
+            {message}
+          </p>
+        )}
 
         {/* Back to Login */}
         <p className="mt-4 text-sm text-center text-gray-600">
@@ -127,6 +195,7 @@ const ResetPassword = () => {
           </a>
         </p>
       </div>
+      <ToastContainer /> {/* Toast notifications container */}
     </div>
   );
 };

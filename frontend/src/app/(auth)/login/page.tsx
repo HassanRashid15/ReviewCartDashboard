@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link"; // Import Next.js Link
 import { FaEnvelope } from "react-icons/fa";
 import { FaLock } from "react-icons/fa6";
+import { ToastContainer, toast } from "react-toastify"; // Import Toastify for notifications
+import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,9 +15,29 @@ function LoginPage() {
   // Check if both fields are filled and the checkbox is checked
   const isFormValid = email && password && rememberMe;
 
-  const handleEmailChange = (e) => setEmail(e.target.value);
-  const handlePasswordChange = (e) => setPassword(e.target.value);
-  const handleRememberMeChange = (e) => setRememberMe(e.target.checked);
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    console.log("Email:", e.target.value); // Log the email
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    console.log("Password:", e.target.value); // Log the password
+  };
+
+  const handleRememberMeChange = (e) => {
+    setRememberMe(e.target.checked);
+    console.log("Remember Me:", e.target.checked); // Log rememberMe status
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isFormValid) {
+      toast.success("Successfully logged in!"); // Toast message on successful form submission
+    } else {
+      toast.error("Please fill in all fields and check 'Remember me'"); // Toast message on invalid form submission
+    }
+  };
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md mx-auto mt-24 mb-9">
@@ -56,7 +78,7 @@ function LoginPage() {
         <span className="px-2 text-sm text-gray-400">Or continue with</span>
         <hr className="flex-grow border-gray-300" />
       </div>
-      <form className="space-y-4">
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
           <label htmlFor="email" className="text-sm font-medium text-gray-600">
             Email
@@ -71,7 +93,7 @@ function LoginPage() {
               placeholder="Enter your email"
               className="w-full px-1 py-3 text-slate-700 text-sm outline-none"
               value={email}
-              onChange={handleEmailChange}
+              onChange={handleEmailChange} // Handle email input change
             />
           </div>
         </div>
@@ -92,7 +114,7 @@ function LoginPage() {
               placeholder="Enter your password"
               className="w-full px-1 py-3 text-slate-700 text-sm outline-none"
               value={password}
-              onChange={handlePasswordChange}
+              onChange={handlePasswordChange} // Handle password input change
             />
           </div>
         </div>
@@ -102,7 +124,7 @@ function LoginPage() {
               type="checkbox"
               className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring focus:ring-indigo-500"
               checked={rememberMe}
-              onChange={handleRememberMeChange}
+              onChange={handleRememberMeChange} // Handle rememberMe checkbox change
             />
             <span className="text-gray-600">Remember me</span>
           </label>
@@ -128,6 +150,7 @@ function LoginPage() {
           Sign up
         </a>
       </p>
+      <ToastContainer /> {/* Toast notifications container */}
     </div>
   );
 }
