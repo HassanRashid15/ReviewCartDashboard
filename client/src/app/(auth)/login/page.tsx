@@ -6,6 +6,7 @@ import { FaEnvelope } from "react-icons/fa";
 import { FaLock } from "react-icons/fa6";
 import { ToastContainer, toast } from "react-toastify"; // Import Toastify for notifications
 import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
+import Cookies from "js-cookie"; // Import js-cookie to handle cookies
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -49,6 +50,20 @@ function LoginPage() {
           const data = await response.json(); // Assuming the response is JSON
           toast.success("Successfully logged in!");
 
+          // Store the token and userId in cookies for 7 days
+          Cookies.set("authToken", data.token, { expires: 7 });
+          Cookies.set("userId", data.userId, { expires: 7 }); // Assuming data contains userId
+
+          // Store the token and userId in session storage for the current session
+          sessionStorage.setItem("authToken", data.token);
+          sessionStorage.setItem("userId", data.userId);
+
+          // Optionally, store the email if you need it in session storage and cookies as well
+          Cookies.set("userEmail", email, { expires: 7 });
+          sessionStorage.setItem("userEmail", email);
+
+          // Redirect the user to a protected page or homepage (optional)
+          // window.location.href = '/dashboard'; // Or use Next.js routing with `useRouter`
         } else {
           const errorData = await response.json();
           toast.error(
@@ -56,7 +71,6 @@ function LoginPage() {
           );
         }
       } catch (error) {
-        // Handle error
         console.error("Login error:", error);
         toast.error("Login failed! Please try again later.");
       }
