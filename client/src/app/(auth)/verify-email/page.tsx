@@ -4,6 +4,7 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { Mail, ArrowRight, RefreshCw, HelpCircle } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify"; // Make sure to import ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Make sure to import the CSS
+import { useRouter } from "next/navigation"; // Import useRouter from next/navigation
 
 interface VerifyEmailProps {
   // Define any props you may want to pass to the component (optional)
@@ -24,6 +25,9 @@ const VerifyEmail: React.FC<VerifyEmailProps> = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [email, setEmail] = useState<string>(""); // Add email state
 
+  const router = useRouter(); // Instantiate the useRouter hook for navigation
+
+  // Effect to handle OTP timer countdown
   useEffect(() => {
     if (timer > 0 && !canResend) {
       const interval = setInterval(() => {
@@ -36,6 +40,7 @@ const VerifyEmail: React.FC<VerifyEmailProps> = () => {
     }
   }, [timer]);
 
+  // Handle OTP input changes
   const handleChange = (element: HTMLInputElement, index: number): void => {
     if (isNaN(Number(element.value))) return;
 
@@ -51,8 +56,10 @@ const VerifyEmail: React.FC<VerifyEmailProps> = () => {
     }
   };
 
+  // Handle "Resend Code" button click
   const handleResendCode = async (): Promise<void> => {
     if (canResend) {
+      setOtpValues(["", "", "", "", "", ""]); // Clear OTP fields
       setTimer(30);
       setCanResend(false);
 
@@ -91,52 +98,62 @@ const VerifyEmail: React.FC<VerifyEmailProps> = () => {
     }
   };
 
-const handleSubmit = async (event: FormEvent): Promise<void> => {
-  event.preventDefault();
-  setLoading(true);
+  // Handle form submission to verify OTP
+  const handleSubmit = async (event: FormEvent): Promise<void> => {
+    event.preventDefault();
+    setLoading(true);
 
-  // Extract email from the URL query parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  const email = urlParams.get("email"); // Get the 'email' query parameter
+    // Extract email from the URL query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get("email"); // Get the 'email' query parameter
 
-  if (!email) {
-    toast.error("Email address is missing from the URL.");
-    setLoading(false);
-    return;
-  }
-
-  try {
-    const otp = otpValues.join(""); // Join OTP values
-    const response = await fetch("http://localhost:4000/users/verify-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email: email, code: otp }), // Use the extracted email from the URL
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setMessage(data.message);
-      toast.success("Email verified successfully!");
-    } else {
-      setMessage(data.message);
-      toast.error("Verification failed. Please try again.");
+    if (!email) {
+      toast.error("Email address is missing from the URL.");
+      setLoading(false);
+      return;
     }
-  } catch (error) {
-    setMessage("Failed to verify email. Please try again.");
-    toast.error("Failed to verify email. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
 
+    try {
+      const otp = otpValues.join(""); // Join OTP values
+      const response = await fetch("http://localhost:4000/users/verify-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: email, code: otp }), // Use the extracted email from the URL
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(data.message);
+        toast.success("Email verified successfully!");
+
+        // Redirect to login page
+        router.push("/login"); // Redirect after successful verification
+      } else {
+        setMessage(data.message);
+        toast.error("Verification failed. Please try again.");
+      }
+    } catch (error) {
+      setMessage("Failed to verify email. Please try again.");
+      toast.error("Failed to verify email. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>): void => {
     setEmail(e.target.value);
     console.log("Email entered: ", e.target.value); // Log email to console
   };
+
+  // Automatically trigger OTP submission when all fields are filled
+  useEffect(() => {
+    if (otpValues.every((value) => value !== "")) {
+      handleSubmit(new Event("submit")); // Trigger handleSubmit if all OTP values are filled
+    }
+  }, [otpValues]);
 
   return (
     <>
@@ -158,17 +175,6 @@ const handleSubmit = async (event: FormEvent): Promise<void> => {
                 code below to verify.
               </p>
             </div>
-
-            {/* Email Input */}
-            {/* <div className="mt-4">
-              <input
-                type="email"
-                value={email}
-                onChange={handleEmailChange}
-                placeholder="Enter your email"
-                className="w-full text-slate-600 p-2 border rounded-md"
-              />
-            </div> */}
 
             <form className="mt-5" onSubmit={handleSubmit}>
               <div className="flex justify-center space-x-4 mb-4 flex-wrap gap-1">
@@ -244,8 +250,7 @@ const handleSubmit = async (event: FormEvent): Promise<void> => {
         </div>
       </div>
       {/* Toastify Container */}
-      <ToastContainer />{" "}
-      {/* This is where the toast notifications will appear */}
+      <ToastContainer />
     </>
   );
 };

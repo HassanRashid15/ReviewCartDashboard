@@ -1,12 +1,18 @@
-"use client"; // Add this directive at the top of the file
+"use client"; // Ensure this file is client-side only
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Info, Clock, HelpCircle } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify"; // Import Toastify
 import "react-toastify/dist/ReactToastify.css"; // Import Toastify CSS
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [isClient, setIsClient] = useState(false); // Track if it's client-side
+
+  // Set up the effect to ensure this runs client-side only
+  useEffect(() => {
+    setIsClient(true); // After the component mounts, set the flag to true
+  }, []);
 
   const handleChange = (event) => {
     setEmail(event.target.value);
@@ -35,6 +41,13 @@ const ForgotPassword = () => {
       if (response.ok) {
         // Show Toastify success message
         toast.success("Reset link sent to your email!");
+
+        // Redirect to the login page after a successful password reset request
+        if (isClient) {
+          setTimeout(() => {
+            window.location.href = "/reset-password"; // Full page redirect to login
+          }, 1500); // Delay the redirect to let the user see the success message
+        }
       } else {
         // Show Toastify error message
         toast.error(data.message || "An error occurred, please try again.");
@@ -44,9 +57,13 @@ const ForgotPassword = () => {
       toast.error("Something went wrong. Please try again.");
     }
 
-    // Log the email to the console (for debugging purposes)
+    // Log the email for debugging purposes
     console.log("Email entered:", email);
   };
+
+  if (!isClient) {
+    return null; // Prevent rendering until client-side
+  }
 
   return (
     <div className="flex items-center justify-center bg-gray-50 mt-24 mb-9">

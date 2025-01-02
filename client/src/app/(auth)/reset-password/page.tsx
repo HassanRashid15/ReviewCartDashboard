@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { ToastContainer, toast } from "react-toastify"; // Import Toastify for notifications
-import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
+import { ToastContainer, toast } from "react-toastify";
+import PropTypes from "prop-types";
+import "react-toastify/dist/ReactToastify.css";
 
 const ResetPassword = ({ token }) => {
-  // Pass token as prop, if required by the backend
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -32,17 +32,19 @@ const ResetPassword = ({ token }) => {
     setLoading(true);
 
     try {
-      // Send POST request to backend API
-      const response = await fetch("http://localhost:4000/users/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token, // Include token if required for password reset
-          newPassword: password,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:4000/users/reset-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token,
+            newPassword: password,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -66,13 +68,11 @@ const ResetPassword = ({ token }) => {
   const handlePasswordChange = (e) => {
     const value = e.target.value;
     setPassword(value);
-    console.log("Password:", value); // Log the password
   };
 
   const handleConfirmPasswordChange = (e) => {
     const value = e.target.value;
     setConfirmPassword(value);
-    console.log("Confirm Password:", value); // Log the confirm password
   };
 
   return (
@@ -94,7 +94,7 @@ const ResetPassword = ({ token }) => {
             <input
               type={passwordVisible ? "text" : "password"}
               value={password}
-              onChange={handlePasswordChange} // Handle password input change
+              onChange={handlePasswordChange}
               placeholder="Enter new password"
               className="w-full px-4 py-2 text-sm border rounded-md focus:ring-indigo-500 text-black focus:border-indigo-500"
             />
@@ -118,7 +118,7 @@ const ResetPassword = ({ token }) => {
             <input
               type={confirmPasswordVisible ? "text" : "password"}
               value={confirmPassword}
-              onChange={handleConfirmPasswordChange} // Handle confirm password input change
+              onChange={handleConfirmPasswordChange}
               placeholder="Confirm new password"
               className="w-full px-4 py-2 text-sm border rounded-md text-black focus:ring-indigo-500 focus:border-indigo-500"
             />
@@ -182,6 +182,7 @@ const ResetPassword = ({ token }) => {
                 ? "text-green-600"
                 : "text-red-600"
             }`}
+            aria-live="polite"
           >
             {message}
           </p>
@@ -198,6 +199,11 @@ const ResetPassword = ({ token }) => {
       <ToastContainer /> {/* Toast notifications container */}
     </div>
   );
+};
+
+// Prop type validation
+ResetPassword.propTypes = {
+  token: PropTypes.string.isRequired,
 };
 
 export default ResetPassword;
