@@ -17,25 +17,51 @@ function LoginPage() {
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
-    console.log("Email:", e.target.value); // Log the email
   };
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
-    console.log("Password:", e.target.value); // Log the password
   };
 
   const handleRememberMeChange = (e) => {
     setRememberMe(e.target.checked);
-    console.log("Remember Me:", e.target.checked); // Log rememberMe status
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (isFormValid) {
-      toast.success("Successfully logged in!"); // Toast message on successful form submission
+      const userData = {
+        email: email,
+        password: password,
+      };
+
+      try {
+        const response = await fetch("http://localhost:4000/users/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        });
+
+        if (response.ok) {
+          const data = await response.json(); // Assuming the response is JSON
+          toast.success("Successfully logged in!");
+
+        } else {
+          const errorData = await response.json();
+          toast.error(
+            errorData.message || "Login failed! Please check your credentials."
+          );
+        }
+      } catch (error) {
+        // Handle error
+        console.error("Login error:", error);
+        toast.error("Login failed! Please try again later.");
+      }
     } else {
-      toast.error("Please fill in all fields and check 'Remember me'"); // Toast message on invalid form submission
+      toast.error("Please fill in all fields and check 'Remember me'");
     }
   };
 

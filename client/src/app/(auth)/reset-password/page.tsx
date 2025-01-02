@@ -33,7 +33,7 @@ const ResetPassword = ({ token }) => {
 
     try {
       // Send POST request to backend API
-      const response = await fetch("/users/reset-password", {
+      const response = await fetch("http://localhost:4000/users/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

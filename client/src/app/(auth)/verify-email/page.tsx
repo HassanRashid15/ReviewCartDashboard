@@ -1,17 +1,28 @@
 "use client"; // Add this directive at the top of the file
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { Mail, ArrowRight, RefreshCw, HelpCircle } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify"; // Make sure to import ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Make sure to import the CSS
 
-const VerifyEmail = () => {
-  const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
-  const [timer, setTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState(""); // Add email state
+interface VerifyEmailProps {
+  // Define any props you may want to pass to the component (optional)
+}
+
+const VerifyEmail: React.FC<VerifyEmailProps> = () => {
+  const [otpValues, setOtpValues] = useState<string[]>([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
+  const [timer, setTimer] = useState<number>(30);
+  const [canResend, setCanResend] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>(""); // Add email state
 
   useEffect(() => {
     if (timer > 0 && !canResend) {
@@ -25,8 +36,8 @@ const VerifyEmail = () => {
     }
   }, [timer]);
 
-  const handleChange = (element, index) => {
-    if (isNaN(element.value)) return;
+  const handleChange = (element: HTMLInputElement, index: number): void => {
+    if (isNaN(Number(element.value))) return;
 
     const newOtpValues = [...otpValues];
     newOtpValues[index] = element.value;
@@ -40,21 +51,29 @@ const VerifyEmail = () => {
     }
   };
 
-  const handleResendCode = async () => {
+  const handleResendCode = async (): Promise<void> => {
     if (canResend) {
       setTimer(30);
       setCanResend(false);
+
+      // Extract email from the URL query parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const email = urlParams.get("email"); // Get the 'email' query parameter
+
       // Trigger resend verification logic
       try {
-        const response = await fetch("/users/resend-verification", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email, // Use the email entered by the user
-          }),
-        });
+        const response = await fetch(
+          "http://localhost:4000/users/resend-verification",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email, // Use the extracted email from the URL
+            }),
+          }
+        );
 
         const data = await response.json();
 
@@ -72,38 +91,49 @@ const VerifyEmail = () => {
     }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
+const handleSubmit = async (event: FormEvent): Promise<void> => {
+  event.preventDefault();
+  setLoading(true);
 
-    try {
-      const otp = otpValues.join(""); // Join OTP values
-      const response = await fetch("/users/verify-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: email, code: otp }), // Use the email entered by the user
-      });
+  // Extract email from the URL query parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const email = urlParams.get("email"); // Get the 'email' query parameter
 
-      const data = await response.json();
+  if (!email) {
+    toast.error("Email address is missing from the URL.");
+    setLoading(false);
+    return;
+  }
 
-      if (response.ok) {
-        setMessage(data.message);
-        toast.success("Email verified successfully!");
-      } else {
-        setMessage(data.message);
-        toast.error("Verification failed. Please try again.");
-      }
-    } catch (error) {
-      setMessage("Failed to verify email. Please try again.");
-      toast.error("Failed to verify email. Please try again.");
-    } finally {
-      setLoading(false);
+  try {
+    const otp = otpValues.join(""); // Join OTP values
+    const response = await fetch("http://localhost:4000/users/verify-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: email, code: otp }), // Use the extracted email from the URL
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setMessage(data.message);
+      toast.success("Email verified successfully!");
+    } else {
+      setMessage(data.message);
+      toast.error("Verification failed. Please try again.");
     }
-  };
+  } catch (error) {
+    setMessage("Failed to verify email. Please try again.");
+    toast.error("Failed to verify email. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleEmailChange = (e) => {
+
+  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>): void => {
     setEmail(e.target.value);
     console.log("Email entered: ", e.target.value); // Log email to console
   };
@@ -130,7 +160,7 @@ const VerifyEmail = () => {
             </div>
 
             {/* Email Input */}
-            <div className="mt-4">
+            {/* <div className="mt-4">
               <input
                 type="email"
                 value={email}
@@ -138,7 +168,7 @@ const VerifyEmail = () => {
                 placeholder="Enter your email"
                 className="w-full text-slate-600 p-2 border rounded-md"
               />
-            </div>
+            </div> */}
 
             <form className="mt-5" onSubmit={handleSubmit}>
               <div className="flex justify-center space-x-4 mb-4 flex-wrap gap-1">

@@ -12,16 +12,40 @@ const ForgotPassword = () => {
     setEmail(event.target.value);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Show Toastify success message
-    toast.success("Reset link sent to your email!");
+    // Show Toastify loading message
+    toast.info("Sending reset link...");
+
+    try {
+      const response = await fetch(
+        "http://localhost:4000/users/forgot-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Show Toastify success message
+        toast.success("Reset link sent to your email!");
+      } else {
+        // Show Toastify error message
+        toast.error(data.message || "An error occurred, please try again.");
+      }
+    } catch (error) {
+      console.error("Error during password reset request:", error);
+      toast.error("Something went wrong. Please try again.");
+    }
 
     // Log the email to the console (for debugging purposes)
     console.log("Email entered:", email);
-
-    // Here you can also add the API call to send the reset link.
   };
 
   return (

@@ -1,4 +1,5 @@
 "use client"; // Add this directive at the top of the file
+import { useRouter } from 'next/router';  // Import the Next.js useRouter hook
 
 import React, { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi"; // Import eye icons from react-icons
@@ -8,6 +9,10 @@ import { FaUser } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
 
 function SignUpPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false); // For loading animation
+  const [isSubmitted, setIsSubmitted] = useState(false); // For success checkmark
+  const [progress, setProgress] = useState(0); // For progress tracking
+
   const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
   const [formData, setFormData] = useState({
     firstName: "",
@@ -38,7 +43,6 @@ function SignUpPage() {
     }
   };
 
-  // Check password strength
   const checkPasswordStrength = (password) => {
     let strength = "";
     const lengthCriteria = password.length >= 6;
@@ -47,7 +51,15 @@ function SignUpPage() {
     const hasNumber = /[0-9]/.test(password);
     const hasSpecialChar = /[!@#$%^&*()_+{}\[\]:;"'<>,.?/\\|`~]/.test(password);
 
-    if (
+    if (!hasUpperCase) {
+      strength = "Password must contain at least one uppercase letter.";
+    } else if (!hasLowerCase) {
+      strength = "Password must contain at least one lowercase letter.";
+    } else if (!hasNumber) {
+      strength = "Password must contain at least one number.";
+    } else if (!hasSpecialChar) {
+      strength = "Password must contain at least one special character.";
+    } else if (
       lengthCriteria &&
       hasUpperCase &&
       hasLowerCase &&
@@ -88,27 +100,76 @@ function SignUpPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validate()) {
-      // Show success notification
-      toast.success("Account created successfully!", { autoClose: 3000 });
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-      console.log("Form submitted with data:", formData); // Log form data upon submission
+  if (validate()) {
+    setIsSubmitting(true); // Trigger the loading animation
+    setProgress(0); // Reset the progress to 0 before submission starts
 
-      // Clear the form data after submission (optional)
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: "",
+    // Start updating the progress bar dynamically
+    const progressInterval = setInterval(() => {
+      setProgress((prevProgress) => {
+        if (prevProgress >= 90) {
+          clearInterval(progressInterval); // Stop updating when progress is 100%
+          return 100;
+        } else {
+          return prevProgress + 2; // Increment progress by 2% to make it smoother
+        }
       });
-    } else {
-      // Show error notification
-      toast.error("Please fix the errors in the form", { autoClose: 3000 });
+    }, 200); // Update progress every 200ms for smoother animation
+
+    try {
+      // Simulate form submission (replace with actual fetch request)
+      const response = await fetch("http://localhost:4000/users/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          fullname: {
+            firstname: formData.firstName,
+            lastname: formData.lastName,
+          },
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Account created successfully!", { autoClose: 3000 });
+
+        // Wait for 4 seconds after the progress reaches 100%
+        setTimeout(() => {
+          setIsSubmitting(false); // Stop loading animation
+          setIsSubmitted(true); // Show checkmark (success state)
+        }, 2000); // Delay 4 seconds before success message
+
+        setTimeout(() => {
+          if (formData.email && formData.email.trim() !== "") {
+            window.location.href = "/verify-email/?email=" + formData.email;
+          } else {
+            window.location.href = "/"; // Redirect to homepage if email is not available
+          }
+        }, 3000); // Redirect after 3 seconds
+      } else {
+        clearInterval(progressInterval); // Stop progress bar if an error occurs
+        setIsSubmitting(false); // Stop loading animation
+        toast.error(data.message || "An error occurred", { autoClose: 3000 });
+      }
+    } catch (error) {
+      clearInterval(progressInterval); // Stop progress bar if an error occurs
+      setIsSubmitting(false); // Stop loading animation
+      toast.error("Network error, please try again later", { autoClose: 3000 });
     }
-  };
+  } else {
+    toast.error("Please fix the errors in the form", { autoClose: 3000 });
+  }
+};
+
+
 
   // Check if the submit button should be enabled
   const isFormValid = () => {
@@ -238,14 +299,51 @@ function SignUpPage() {
           </div>
           <button
             type="submit"
-            disabled={!isFormValid()}
+            disabled={!isFormValid() || isSubmitting}
             className={`w-full py-2 rounded-lg font-medium transition ${
-              isFormValid()
+              isFormValid() && !isSubmitting
                 ? "bg-indigo-600 text-white hover:bg-indigo-700"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            Sign up
+            {isSubmitting ? (
+              <div className="relative w-full h-2 bg-gray-300 rounded-full">
+                <div
+                  className="absolute top-0 left-0 h-full rounded-full"
+                  style={{
+                    width: `${progress}%`, // Dynamic progress based on the current state
+                    backgroundColor: "rgb(99, 102, 241)", // Customize color here
+                    transition: "width 0.2s ease-in-out", // Smooth transition for progress
+                    borderRadius: "9999px", // Make the progress bar rounded
+                  }}
+                />
+                <div className="absolute top-0 left-0 w-full flex justify-center items-center text-white text-xs font-medium">
+                  {`${Math.round(progress)}%`}{" "}
+                  {/* Displaying the percentage of progress */}
+                </div>
+              </div>
+            ) : isSubmitted ? (
+              <div className="flex justify-center items-center space-x-2">
+                {/* Success check mark */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  className="w-5 h-5 text-green-500"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <span>Success!</span>
+              </div>
+            ) : (
+              "Sign up"
+            )}
           </button>
         </form>
         <p className="text-sm text-center mt-4 text-gray-500 mb-2">
