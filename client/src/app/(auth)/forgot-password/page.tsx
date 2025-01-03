@@ -1,68 +1,67 @@
-"use client"; // Ensure this file is client-side only
+"use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { Mail, Info, Clock, HelpCircle } from "lucide-react";
-import { ToastContainer, toast } from "react-toastify"; // Import Toastify
-import "react-toastify/dist/ReactToastify.css"; // Import Toastify CSS
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import {
+  ForgotPasswordFormData,
+  ApiResponse,
+  ForgotPasswordProps,
+} from "@/types/types";
 
-const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
-  const [isClient, setIsClient] = useState(false); // Track if it's client-side
+const ForgotPassword: React.FC<ForgotPasswordProps> = ({
+  redirectUrl = "/reset-password",
+  apiEndpoint = "http://localhost:4000/users/forgot-password",
+}) => {
+  const [formData, setFormData] = useState<ForgotPasswordFormData>({
+    email: "",
+  });
+  const [isClient, setIsClient] = useState<boolean>(false);
 
-  // Set up the effect to ensure this runs client-side only
   useEffect(() => {
-    setIsClient(true); // After the component mounts, set the flag to true
+    setIsClient(true);
   }, []);
 
-  const handleChange = (event) => {
-    setEmail(event.target.value);
+  const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    setFormData({ ...formData, [event.target.name]: event.target.value });
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     event.preventDefault();
 
-    // Show Toastify loading message
-    toast.info("Sending reset link...");
-
     try {
-      const response = await fetch(
-        "http://localhost:4000/users/forgot-password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
+      const response = await fetch(apiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
-      const data = await response.json();
+      const data: ApiResponse = await response.json();
 
       if (response.ok) {
-        // Show Toastify success message
         toast.success("Reset link sent to your email!");
 
-        // Redirect to the login page after a successful password reset request
         if (isClient) {
           setTimeout(() => {
-            window.location.href = "/reset-password"; // Full page redirect to login
-          }, 1500); // Delay the redirect to let the user see the success message
+            window.location.href = redirectUrl;
+          }, 1500);
         }
       } else {
-        // Show Toastify error message
         toast.error(data.message || "An error occurred, please try again.");
       }
     } catch (error) {
       console.error("Error during password reset request:", error);
       toast.error("Something went wrong. Please try again.");
     }
-
-    // Log the email for debugging purposes
-    console.log("Email entered:", email);
   };
 
   if (!isClient) {
-    return null; // Prevent rendering until client-side
+    return null;
   }
 
   return (
@@ -94,7 +93,7 @@ const ForgotPassword = () => {
                   name="email"
                   type="email"
                   placeholder="Enter your email"
-                  value={email}
+                  value={formData.email}
                   onChange={handleChange}
                   className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
@@ -103,9 +102,9 @@ const ForgotPassword = () => {
 
             <button
               type="submit"
-              disabled={!email}
+              disabled={!formData.email}
               className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                email
+                formData.email
                   ? "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   : "bg-gray-300 cursor-not-allowed"
               }`}
@@ -158,7 +157,6 @@ const ForgotPassword = () => {
         </div>
       </div>
 
-      {/* Toastify Container */}
       <ToastContainer />
     </div>
   );

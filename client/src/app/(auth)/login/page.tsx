@@ -1,93 +1,145 @@
-"use client"; // Add this directive at the top of the file
+"use client";
 
-import React, { useState } from "react";
-import Link from "next/link"; // Import Next.js Link
-import { FaEnvelope } from "react-icons/fa";
-import { FaLock } from "react-icons/fa6";
-import { ToastContainer, toast } from "react-toastify"; // Import Toastify for notifications
-import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
-import Cookies from "js-cookie"; // Import js-cookie to handle cookies
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { LoginPayload, FormData, FormErrors } from "@/types/types";
+import { useAuth } from "@/context/AuthContext";
 
-function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+const LoginPage = () => {
+  const router = useRouter();
+  const { setUser, setToken } = useAuth();
 
-  // Check if both fields are filled and the checkbox is checked
-  const isFormValid = email && password && rememberMe;
+  const [formData, setFormData] = useState<FormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false); // Track redirection state
+  const [isLoading, setIsLoading] = useState(false); // Loading spinner
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
-
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-  };
-
-  const handleRememberMeChange = (e) => {
-    setRememberMe(e.target.checked);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (isFormValid) {
-      const userData = {
-        email: email,
-        password: password,
-      };
-
-      try {
-        const response = await fetch("http://localhost:4000/users/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(userData),
-        });
-
-        if (response.ok) {
-          const data = await response.json(); // Assuming the response is JSON
-          toast.success("Successfully logged in!");
-
-          // Store the token and userId in cookies for 7 days
-          Cookies.set("authToken", data.token, { expires: 7 });
-          Cookies.set("userId", data.userId, { expires: 7 }); // Assuming data contains userId
-
-          // Store the token and userId in session storage for the current session
-          sessionStorage.setItem("authToken", data.token);
-          sessionStorage.setItem("userId", data.userId);
-
-          // Optionally, store the email if you need it in session storage and cookies as well
-          Cookies.set("userEmail", email, { expires: 7 });
-          sessionStorage.setItem("userEmail", email);
-
-          // Redirect the user to a protected page or homepage (optional)
-          // window.location.href = '/dashboard'; // Or use Next.js routing with `useRouter`
-        } else {
-          const errorData = await response.json();
-          toast.error(
-            errorData.message || "Login failed! Please check your credentials."
-          );
-        }
-      } catch (error) {
-        console.error("Login error:", error);
-        toast.error("Login failed! Please try again later.");
-      }
-    } else {
-      toast.error("Please fill in all fields and check 'Remember me'");
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (errors[name as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
+  const validate = () => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!validate()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setIsLoading(true); // Show the loading spinner
+    setIsRedirecting(true); // Set redirect state before the delay
+
+    try {
+      const payload: LoginPayload = {
+        email: formData.email,
+        password: formData.password,
+      };
+
+      const response = await fetch("http://localhost:4000/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token in localStorage and context
+        localStorage.setItem("token", data.token);
+        setToken(data.token);
+
+        // Store user data in context
+        setUser(data.user);
+
+        toast.success("Successfully logged in!");
+
+        // Set a flag in localStorage to indicate login success
+        localStorage.setItem("loginSuccess", "true");
+        router.push("/dashboard"); // Redirect to dashboard after successful login
+
+        // Adding a delay before redirect to show "Redirecting..." text
+      } else {
+        toast.error(
+          data.message || "Login failed! Please check your credentials."
+        );
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Login failed! Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+      setIsRedirecting(false); // Reset redirect state
+      setIsLoading(false); // Hide the loading spinner
+    }
+  };
+
+  const isFormValid = !!(formData.email && formData.password);
+
+  useEffect(() => {
+    const loginSuccess = localStorage.getItem("loginSuccess");
+
+    if (loginSuccess === "true") {
+      localStorage.removeItem("loginSuccess");
+      router.push("/login");
+    }
+  }, [router]);
+
   return (
-    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md mx-auto mt-24 mb-9">
+    <div
+      className={`bg-white p-8 rounded-lg shadow-lg w-full max-w-md mx-auto mt-24 mb-9 ${
+        isRedirecting ? "fade-out" : ""
+      }`}
+    >
       <h2 className="text-2xl font-semibold text-gray-800 text-center">
         Welcome Back!
       </h2>
       <p className="text-gray-500 text-center mt-2">
         Please login to your account
       </p>
-      <button className="flex items-center justify-center w-full bg-gray-100 border border-gray-300 text-gray-600 font-medium px-4 py-2 mt-6 rounded-lg hover:bg-gray-200 transition">
+
+      {/* Google Sign-in Button */}
+      <button
+        onClick={() => toast.info("Google Sign-in coming soon!")}
+        className="flex items-center justify-center w-full bg-gray-100 border border-gray-300 text-gray-600 font-medium px-4 py-2 mt-6 rounded-lg hover:bg-gray-200 transition"
+      >
         <svg
           className="h-5 w-5 mr-2"
           xmlns="http://www.w3.org/2000/svg"
@@ -113,61 +165,64 @@ function LoginPage() {
         </svg>
         Sign in with Google
       </button>
+
+      {/* Divider */}
       <div className="flex items-center my-4">
         <hr className="flex-grow border-gray-300" />
         <span className="px-2 text-sm text-gray-400">Or continue with</span>
         <hr className="flex-grow border-gray-300" />
       </div>
+
+      {/* Login Form */}
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="email" className="text-sm font-medium text-gray-600">
-            Email
-          </label>
+          <label className="text-sm font-medium text-gray-600">Email</label>
           <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
             <span className="px-3 text-gray-500">
               <FaEnvelope />
             </span>
             <input
-              id="email"
               type="email"
+              name="email"
               placeholder="Enter your email"
               className="w-full px-1 py-3 text-slate-700 text-sm outline-none"
-              value={email}
-              onChange={handleEmailChange} // Handle email input change
+              value={formData.email}
+              onChange={handleChange}
             />
           </div>
+          {errors.email && (
+            <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+          )}
         </div>
+
         <div>
-          <label
-            htmlFor="password"
-            className="text-sm font-medium text-gray-600"
-          >
-            Password
-          </label>
+          <label className="text-sm font-medium text-gray-600">Password</label>
           <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
             <span className="px-3 text-gray-500">
               <FaLock />
             </span>
             <input
-              id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
+              name="password"
               placeholder="Enter your password"
               className="w-full px-1 py-3 text-slate-700 text-sm outline-none"
-              value={password}
-              onChange={handlePasswordChange} // Handle password input change
+              value={formData.password}
+              onChange={handleChange}
             />
+            <button
+              type="button"
+              className="px-3 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
           </div>
+          {errors.password && (
+            <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+          )}
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring focus:ring-indigo-500"
-              checked={rememberMe}
-              onChange={handleRememberMeChange} // Handle rememberMe checkbox change
-            />
-            <span className="text-gray-600">Remember me</span>
-          </label>
+
+        <div className="flex justify-end text-sm">
           <Link
             href="/forgot-password"
             className="text-indigo-600 hover:underline"
@@ -175,24 +230,45 @@ function LoginPage() {
             Forgot password?
           </Link>
         </div>
+
         <button
+          type="submit"
+          disabled={!isFormValid || isSubmitting || isLoading || isRedirecting}
           className={`w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition ${
-            !isFormValid ? "opacity-50 cursor-not-allowed" : ""
+            !isFormValid || isSubmitting || isLoading || isRedirecting
+              ? "opacity-50 cursor-not-allowed"
+              : ""
           }`}
-          disabled={!isFormValid}
         >
-          Sign in
+          {isRedirecting ? (
+            <div className="flex justify-center items-center">
+              <div className="animate-spin border-4 border-t-4 border-white rounded-full w-5 h-5 mr-2"></div>
+              Redirecting...
+            </div>
+          ) : isLoading ? (
+            <div className="flex justify-center items-center">
+              <div className="animate-spin border-4 border-t-4 border-white rounded-full w-5 h-5 mr-2"></div>
+              Logging in...
+            </div>
+          ) : isSubmitting ? (
+            "Signing in..."
+          ) : (
+            "Sign in"
+          )}
         </button>
       </form>
+
+      {/* Sign Up Link */}
       <p className="text-sm text-center mt-4 text-gray-500">
         Don't have an account?{" "}
-        <a href="/signup" className="text-indigo-600 hover:underline">
+        <Link href="/signup" className="text-indigo-600 hover:underline">
           Sign up
-        </a>
+        </Link>
       </p>
-      <ToastContainer /> {/* Toast notifications container */}
+
+      <ToastContainer />
     </div>
   );
-}
+};
 
 export default LoginPage;

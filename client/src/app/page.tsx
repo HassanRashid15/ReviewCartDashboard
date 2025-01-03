@@ -4,6 +4,7 @@ import { ChevronRight, ArrowRight, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
+  
   // Features data
   const features = [
     {

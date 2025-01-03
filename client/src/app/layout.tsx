@@ -1,10 +1,11 @@
 "use client";
 
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { usePathname } from "next/navigation";
+import { AuthProvider } from "@/context/AuthContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { usePathname } from "next/navigation";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,8 +23,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-
-  // Check if the current path starts with "/dashboard"
   const isDashboard = pathname?.startsWith("/dashboard");
 
   return (
@@ -31,9 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        {!isDashboard && <Header />}
-        <main className="flex-grow">{children}</main>
-        {!isDashboard && <Footer />}
+        <AuthProvider>
+          {!isDashboard && <Header />}
+          <main className="flex-grow">{children}</main>
+          {!isDashboard && <Footer />}
+        </AuthProvider>
       </body>
     </html>
   );

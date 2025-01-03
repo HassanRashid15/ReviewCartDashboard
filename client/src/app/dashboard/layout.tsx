@@ -1,11 +1,11 @@
-// app/dashboard/layout.tsx
-"use client";
-import React, { useState } from "react";
+"use client"; // This makes the component a client-side component in Next.js
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   Home,
-  Users,
-  FolderKanban,
   Calendar,
   MessageSquare,
   Settings,
@@ -16,10 +16,40 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
+  const { user, logout, setUser } = useAuth(); // Ensure that logout also clears the user context
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // Protect dashboard routes
+  useEffect(() => {
+    if (!user) {
+      console.log("User not logged in, redirecting to login...");
+    }
+  }, [user, router]);
+
+  const handleLogout = async () => {
+    try {
+      console.log("Attempting to logout...");
+      await logout();
+      console.log("Logout successful, showing success toast.");
+
+      // Clear the user state immediately
+      setUser(null); // Ensure user state is cleared after logout
+
+      // Show success toast
+      toast.success("Successfully logged out!");
+
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Logout failed. Please try again."); // Show error toast
+    }
+  };
 
   const sidebarLinks = [
     { icon: Home, name: "Dashboard", href: "/dashboard" },
@@ -47,6 +77,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       time: "1h ago",
     },
   ];
+
+  // If no user, show nothing while redirecting
+  if (!user) return null;
 
   return (
     <div className="min-h-screen flex">
@@ -100,7 +133,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <HelpCircle className="h-5 w-5 mr-3" />
               Help Center
             </Link>
-            <button className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
+            <button
+              onClick={handleLogout}
+              className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+            >
               <LogOut className="h-5 w-5 mr-3" />
               Logout
             </button>
@@ -172,7 +208,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 className="w-8 h-8 rounded-full"
               />
               <span className="text-sm font-medium text-gray-900">
-                John Doe
+                {user.fullname.firstname} {user.fullname.lastname}
               </span>
             </div>
           </div>
@@ -181,6 +217,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Page Content */}
         <main className="p-6">{children}</main>
       </div>
+
+      {/* ToastContainer to render toasts */}
+      <ToastContainer position="top-right" autoClose={5000} />
     </div>
   );
 };
